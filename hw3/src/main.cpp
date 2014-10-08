@@ -1,9 +1,10 @@
+#include "mpi.h"
 #include <iostream>
 #include <fstream>
 #include <cmath>
 #include <iomanip>
 #include <stdlib.h>
-#include "mpi.h"
+
 
 #define ERROR -1
 
