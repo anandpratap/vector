@@ -7,7 +7,7 @@
 
 #define ERROR -1
 
-int get_rank(int x, int y, int z){
+inline int get_rank(int x, int y, int z){
   // return processor rank based on x and y coordinates
   return x*z + y;
 }
@@ -128,67 +128,92 @@ int main(int argc, char **argv){
   sum = sumDiag(m, A, x, y, size);
   MPI_Reduce(&sum, &total_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   if(rank == 0){
-    printf("sum after %d iterations = %10.10f\n",total_sum, t);
+    printf("sum after %d iterations = %10.10f\n", t, total_sum);
   }
   
   // entries which remains constant are copied to B
-  double send_buffer[m], recv_buffer[m];
-  MPI_Status status;
+  double send_buffer_0[m], recv_buffer_0[m];
+  double send_buffer_1[m], recv_buffer_1[m];
+  double send_buffer_2[m], recv_buffer_2[m];
+  double send_buffer_3[m], recv_buffer_3[m];
+  double send_buffer_4[1], recv_buffer_4[1];
+  double send_buffer_5[1], recv_buffer_5[1];
+  double send_buffer_6[1], recv_buffer_6[1];
+  double send_buffer_7[1], recv_buffer_7[1];
+  MPI_Request s[8], r[8];
+
+  MPI_Status status[8];
   // startime
+  int flag;
 
   MPI_Barrier(MPI_COMM_WORLD);
   double starttime = MPI_Wtime();
   while(true){
     t++;
-    B[1:m][1:m] = A[:][:];
+    
     if(size != 1){
       // send to south and receive from north
-      send_buffer[0:m] = A[0][0:m];
-      MPI_Send(&send_buffer, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD, &status);
-      B[m+1][1:m] = recv_buffer[0:m];
+      send_buffer_0[0:m] = A[0][0:m];
+      MPI_Isend(&send_buffer_0, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD, &s[0]);
+      MPI_Irecv(&recv_buffer_0, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD, &r[0]);
       
       // send to north receive from south
-      send_buffer[0:m] = A[m-1][0:m];
-      MPI_Send(&send_buffer, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD, &status);
-      B[0][1:m] = recv_buffer[0:m];
+      send_buffer_1[0:m] = A[m-1][0:m];
+      MPI_Isend(&send_buffer_1, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD, &s[1]);
+      MPI_Irecv(&recv_buffer_1, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD, &r[1]);
+
       
       // send to east and receive from west
-      send_buffer[0:m] = A[0:m][m-1];
-      MPI_Send(&send_buffer, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD, &status);
-      B[1:m][0] = recv_buffer[0:m];
+      send_buffer_2[0:m] = A[0:m][m-1];
+      MPI_Isend(&send_buffer_2, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD, &s[2]);
+      MPI_Irecv(&recv_buffer_2, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD, &r[2]);
+
       
       // send to west and receive from east
-      send_buffer[0:m] = A[0:m][0];
-      MPI_Send(&send_buffer, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD, &status);
-      B[1:m][m+1] = recv_buffer[0:m];
+      send_buffer_3[0:m] = A[0:m][0];
+      MPI_Isend(&send_buffer_3, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD, &s[3]);
+      MPI_Irecv(&recv_buffer_3, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD, &r[3]);
+
       
       // send to south east and receive from north west
-      send_buffer[0] = A[0][m-1];
-      MPI_Send(&send_buffer, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD, &status);
-      B[m+1][0] = recv_buffer[0];
+      send_buffer_4[0] = A[0][m-1];
+      MPI_Isend(&send_buffer_4, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD, &s[4]);
+      MPI_Irecv(&recv_buffer_4, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD, &r[4]);
+
       
     // send to north east and receive from south west
-      send_buffer[0] = A[m-1][m-1];
-      MPI_Send(&send_buffer, 1, MPI_DOUBLE, northeast, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD, &status);
-      B[0][0] = recv_buffer[0];
+      send_buffer_5[0] = A[m-1][m-1];
+      MPI_Isend(&send_buffer_5, 1, MPI_DOUBLE, northeast, 1, MPI_COMM_WORLD, &s[5]);
+      MPI_Irecv(&recv_buffer_5, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD, &r[5]);
+
       
       // send to north west and receive from south east
-      send_buffer[0] = A[m-1][0];
-      MPI_Send(&send_buffer, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD, &status);
-      B[0][m+1] = recv_buffer[0];
+      send_buffer_6[0] = A[m-1][0];
+      MPI_Isend(&send_buffer_6, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD, &s[6]);
+      MPI_Irecv(&recv_buffer_6, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD, &r[6]);
+
       
       // send to south west and and receive from north east
-      send_buffer[0] = A[0][0];
-      MPI_Send(&send_buffer, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD);
-      MPI_Recv(&recv_buffer, 1, MPI_DOUBLE, northeast, 1, MPI_COMM_WORLD, &status);
-      B[m+1][m+1] = recv_buffer[0];
+      send_buffer_7[0] = A[0][0];
+      MPI_Isend(&send_buffer_7, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD, &s[7]);
+      MPI_Irecv(&recv_buffer_7, 1, MPI_DOUBLE, northeast, 1, MPI_COMM_WORLD, &r[7]);
+      
+    }
+
+    B[1:m][1:m] = A[:][:];
+    // update interior points
+    A[1:m-2][1:m-2] = 0.125f*(B[2:m-2][3:m-2] + B[2:m-2][1:m-2] + B[1:m-2][3:m-2] + B[1:m-2][1:m-2] + B[3:m-2][3:m-2] + B[3:m-2][1:m-2] + B[3:m-2][2:m-2] + B[1:m-2][2:m-2]);
+    
+    if(size != 1){
+      MPI_Waitall(8, r, status);
+      B[m+1][1:m] = recv_buffer_0[0:m];
+      B[0][1:m] = recv_buffer_1[0:m];
+      B[1:m][0] = recv_buffer_2[0:m];
+      B[1:m][m+1] = recv_buffer_3[0:m];
+      B[m+1][0] = recv_buffer_4[0];
+      B[0][0] = recv_buffer_5[0];
+      B[0][m+1] = recv_buffer_6[0];
+      B[m+1][m+1] = recv_buffer_7[0];
     }
     
     else{
@@ -202,17 +227,21 @@ int main(int argc, char **argv){
       B[m+1][m+1] = A[0][0];
     }
     
+    // update boundary points
+
+    // i = 0
+    if(x != 0)
+      A[0][0:m] = 0.125f*(B[1][2:m] + B[1][0:m] + B[0][2:m] + B[0][0:m] + B[2][2:m] + B[2][0:m] + B[2][1:m] + B[0][1:m]);
     
-    if(x == 0){
-      A[1:m-1][0:m] = 0.125*(B[2:m-1][2:m] + B[2:m-1][0:m] + B[1:m-1][2:m] + B[1:m-1][0:m] + B[3:m-1][2:m] + B[3:m-1][0:m] + B[3:m-1][1:m] + B[1:m-1][2:m]);
-    }
-    else if(x == z - 1){
-      A[0:m-1][0:m] = 0.125*(B[1:m-1][2:m] + B[1:m-1][0:m] + B[0:m-1][2:m] + B[0:m-1][0:m] + B[2:m-1][2:m] + B[2:m-1][0:m] + B[2:m-1][1:m] + B[0:m-1][1:m]);
-    }
-    else{
-      A[0:m][0:m] = 0.125*(B[1:m][2:m] + B[1:m][0:m] + B[0:m][2:m] + B[0:m][0:m] + B[2:m][2:m] + B[2:m][0:m] + B[2:m][1:m] + B[0:m][1:m]);
-    }
-    
+    // i = m-1
+    if(x != z - 1)
+      A[m-1][0:m] = 0.125f*(B[m][2:m] + B[m][0:m] + B[m-1][2:m] + B[m-1][0:m] + B[m+1][2:m] + B[m+1][0:m] + B[m+1][1:m] + B[m-1][1:m]);
+
+    // j = 0
+    A[1:m-2][0] = 0.125f*(B[2:m][2] + B[2:m][0] + B[1:m][2] + B[1:m][0] + B[3:m][2] + B[3:m][0] + B[3:m][1] + B[1:m][1]);
+    // j = m-1
+    A[1:m-2][m-1] = 0.125f*(B[2:m][m+1] + B[2:m][m-1] + B[1:m][m+1] + B[1:m][m-1] + B[3:m][m+1] + B[3:m][m-1] + B[3:m][m] + B[1:m][m]);
+
     if( t == tf){
       break;
     }
@@ -226,8 +255,16 @@ int main(int argc, char **argv){
   sum = sumDiag(m, A, x, y, size);
   MPI_Reduce(&sum, &total_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   if(rank == 0){
-    printf("sum after %d iterations = %10.10f m=%d\n",total_sum, t, m);
+    printf("sum after %d iterations = %10.10f m=%d\n", t, total_sum, m);
+    
+    FILE *fp;
+    fp=fopen("timings.dat", "a+");
+    fprintf(fp, "%d %d %f\n", size, N, endtime-starttime);
+    fclose(fp);
+
+
   }
+
   MPI_Finalize();
   return 0;
 }
