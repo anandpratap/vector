@@ -155,49 +155,45 @@ int main(int argc, char **argv){
       // send to south and receive from north
       send_buffer_0[0:m] = A[0][0:m];
       MPI_Isend(&send_buffer_0, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD, &s[0]);
-      MPI_Irecv(&recv_buffer_0, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD, &r[0]);
-      
-      // send to north receive from south
+            
       send_buffer_1[0:m] = A[m-1][0:m];
       MPI_Isend(&send_buffer_1, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD, &s[1]);
-      MPI_Irecv(&recv_buffer_1, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD, &r[1]);
-
       
-      // send to east and receive from west
       send_buffer_2[0:m] = A[0:m][m-1];
       MPI_Isend(&send_buffer_2, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD, &s[2]);
-      MPI_Irecv(&recv_buffer_2, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD, &r[2]);
-
       
-      // send to west and receive from east
       send_buffer_3[0:m] = A[0:m][0];
       MPI_Isend(&send_buffer_3, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD, &s[3]);
-      MPI_Irecv(&recv_buffer_3, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD, &r[3]);
-
       
-      // send to south east and receive from north west
       send_buffer_4[0] = A[0][m-1];
       MPI_Isend(&send_buffer_4, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD, &s[4]);
-      MPI_Irecv(&recv_buffer_4, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD, &r[4]);
-
       
-    // send to north east and receive from south west
       send_buffer_5[0] = A[m-1][m-1];
       MPI_Isend(&send_buffer_5, 1, MPI_DOUBLE, northeast, 1, MPI_COMM_WORLD, &s[5]);
-      MPI_Irecv(&recv_buffer_5, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD, &r[5]);
 
-      
-      // send to north west and receive from south east
       send_buffer_6[0] = A[m-1][0];
       MPI_Isend(&send_buffer_6, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD, &s[6]);
-      MPI_Irecv(&recv_buffer_6, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD, &r[6]);
-
       
-      // send to south west and and receive from north east
       send_buffer_7[0] = A[0][0];
       MPI_Isend(&send_buffer_7, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD, &s[7]);
+
+      MPI_Irecv(&recv_buffer_0, m, MPI_DOUBLE, north, 1, MPI_COMM_WORLD, &r[0]);
+      // send to north receive from south
+      MPI_Irecv(&recv_buffer_1, m, MPI_DOUBLE, south, 1, MPI_COMM_WORLD, &r[1]);
+      // send to east and receive from west
+      MPI_Irecv(&recv_buffer_2, m, MPI_DOUBLE, west, 1, MPI_COMM_WORLD, &r[2]);
+      // send to west and receive from east
+      MPI_Irecv(&recv_buffer_3, m, MPI_DOUBLE, east, 1, MPI_COMM_WORLD, &r[3]);
+      // send to south east and receive from north west
+      MPI_Irecv(&recv_buffer_4, 1, MPI_DOUBLE, northwest, 1, MPI_COMM_WORLD, &r[4]);
+      // send to north east and receive from south west
+      MPI_Irecv(&recv_buffer_5, 1, MPI_DOUBLE, southwest, 1, MPI_COMM_WORLD, &r[5]);
+      // send to north west and receive from south east
+      MPI_Irecv(&recv_buffer_6, 1, MPI_DOUBLE, southeast, 1, MPI_COMM_WORLD, &r[6]);
+      // send to south west and and receive from north east
       MPI_Irecv(&recv_buffer_7, 1, MPI_DOUBLE, northeast, 1, MPI_COMM_WORLD, &r[7]);
-      
+
+
     }
 
     B[1:m][1:m] = A[:][:];
@@ -205,6 +201,7 @@ int main(int argc, char **argv){
     A[1:m-2][1:m-2] = 0.125f*(B[2:m-2][3:m-2] + B[2:m-2][1:m-2] + B[1:m-2][3:m-2] + B[1:m-2][1:m-2] + B[3:m-2][3:m-2] + B[3:m-2][1:m-2] + B[3:m-2][2:m-2] + B[1:m-2][2:m-2]);
     
     if(size != 1){
+
       MPI_Waitall(8, r, status);
       B[m+1][1:m] = recv_buffer_0[0:m];
       B[0][1:m] = recv_buffer_1[0:m];
@@ -259,7 +256,7 @@ int main(int argc, char **argv){
     
     FILE *fp;
     fp=fopen("timings.dat", "a+");
-    fprintf(fp, "%d %d %f\n", size, N, endtime-starttime);
+    fprintf(fp, "%d %d %f %10.16f\n", size, N, endtime-starttime, total_sum);
     fclose(fp);
 
 
