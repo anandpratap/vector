@@ -3,7 +3,6 @@
 #include "assert.h"
 #include "utils.hpp"
 
-
 // enqueue(*q, a, b)
 // *node = dequeue(*q)
 // n = get_length(*q)
@@ -32,6 +31,7 @@ void enqueue(struct queue *q, double a, double b){
 	struct domain *interval = new domain;
 	interval->a = a;
 	interval->b = b;
+
 	temp->interval = interval;
 	temp->next = NULL;
     
@@ -63,6 +63,7 @@ struct node* dequeue(struct queue *q){
     
 	// if the resulting queue is empty set last pointer to null as well
 	if(q -> length == 0){
+		q->first = NULL;
 		q->last = NULL;
 	}
 
